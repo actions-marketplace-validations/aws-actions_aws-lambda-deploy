@@ -22,10 +22,11 @@ async function run() {
       role, codeSigningConfigArn, kmsKeyArn, sourceKmsKeyArn,
       vpcConfig, deadLetterConfig, tracingConfig,
       layers, fileSystemConfigs, imageConfig, snapStart,
-      loggingConfig, tags,
+      loggingConfig, tags, durableConfig,
       parsedEnvironment, parsedVpcConfig, parsedDeadLetterConfig,
       parsedTracingConfig, parsedLayers, parsedFileSystemConfigs,
       parsedImageConfig, parsedSnapStart, parsedLoggingConfig, parsedTags,
+      parsedDurableConfig,
       functionDescription, dryRun, publish, revisionId,
       runtime, handler, architectures
     } = inputs;
@@ -75,9 +76,10 @@ async function run() {
       revisionId, vpcConfig, parsedEnvironment, deadLetterConfig,
       tracingConfig, layers, fileSystemConfigs, imageConfig,
       snapStart, loggingConfig, tags, kmsKeyArn, codeSigningConfigArn,
+      durableConfig,
       parsedVpcConfig, parsedDeadLetterConfig, parsedTracingConfig,
       parsedLayers, parsedFileSystemConfigs, parsedImageConfig,
-      parsedSnapStart, parsedLoggingConfig, parsedTags
+      parsedSnapStart, parsedLoggingConfig, parsedTags, parsedDurableConfig
     }, functionExists);
 
     // Update function configuration
@@ -102,7 +104,8 @@ async function run() {
       ...(fileSystemConfigs && { FileSystemConfigs: parsedFileSystemConfigs }),
       ...(imageConfig && { ImageConfig: parsedImageConfig }),
       ...(snapStart && { SnapStart: parsedSnapStart }),
-      ...(loggingConfig && { LoggingConfig: parsedLoggingConfig })
+      ...(loggingConfig && { LoggingConfig: parsedLoggingConfig }),
+      ...(durableConfig && { DurableConfig: parsedDurableConfig })
     });
 
     if (configChanged) {
@@ -130,6 +133,7 @@ async function run() {
         imageConfig,
         snapStart,
         loggingConfig,
+        durableConfig,
         parsedVpcConfig,
         parsedDeadLetterConfig,
         parsedTracingConfig,
@@ -137,7 +141,8 @@ async function run() {
         parsedFileSystemConfigs,
         parsedImageConfig,
         parsedSnapStart,
-        parsedLoggingConfig
+        parsedLoggingConfig,
+        parsedDurableConfig
       });
     } else {
       core.info('No configuration changes detected');
@@ -296,9 +301,10 @@ async function createFunction(client, inputs, functionExists) {
     timeout, publish, architectures, ephemeralStorage, revisionId,
     vpcConfig, parsedEnvironment, deadLetterConfig, tracingConfig,
     layers, fileSystemConfigs, imageConfig, snapStart, loggingConfig, tags,
-    kmsKeyArn, codeSigningConfigArn, parsedVpcConfig, parsedDeadLetterConfig,
+    kmsKeyArn, codeSigningConfigArn, durableConfig,
+    parsedVpcConfig, parsedDeadLetterConfig,
     parsedTracingConfig, parsedLayers, parsedFileSystemConfigs, parsedImageConfig,
-    parsedSnapStart, parsedLoggingConfig, parsedTags
+    parsedSnapStart, parsedLoggingConfig, parsedTags, parsedDurableConfig
   } = inputs;
 
   if (!functionExists) {
@@ -384,6 +390,7 @@ async function createFunction(client, inputs, functionExists) {
         ...(tags && { Tags: parsedTags }),
         ...(kmsKeyArn && { KMSKeyArn: kmsKeyArn }),
         ...(codeSigningConfigArn && { CodeSigningConfigArn: codeSigningConfigArn }),
+        ...(durableConfig && { DurableConfig: parsedDurableConfig })
       };
 
       core.info(`Creating new Lambda function: ${functionName}`);
@@ -474,10 +481,10 @@ async function updateFunctionConfiguration(client, params) {
     functionName, role, handler, functionDescription, parsedMemorySize,
     timeout, runtime, kmsKeyArn, ephemeralStorage, vpcConfig,
     parsedEnvironment, deadLetterConfig, tracingConfig, layers,
-    fileSystemConfigs, imageConfig, snapStart, loggingConfig,
+    fileSystemConfigs, imageConfig, snapStart, loggingConfig, durableConfig,
     parsedVpcConfig, parsedDeadLetterConfig, parsedTracingConfig,
     parsedLayers, parsedFileSystemConfigs, parsedImageConfig,
-    parsedSnapStart, parsedLoggingConfig
+    parsedSnapStart, parsedLoggingConfig, parsedDurableConfig
   } = params;
 
   try {
@@ -499,7 +506,8 @@ async function updateFunctionConfiguration(client, params) {
       ...(fileSystemConfigs && { FileSystemConfigs: parsedFileSystemConfigs }),
       ...(imageConfig && { ImageConfig: parsedImageConfig }),
       ...(snapStart && { SnapStart: parsedSnapStart }),
-      ...(loggingConfig && { LoggingConfig: parsedLoggingConfig })
+      ...(loggingConfig && { LoggingConfig: parsedLoggingConfig }),
+      ...(durableConfig && { DurableConfig: parsedDurableConfig })
     };
 
     core.info(`Updating function configuration for ${functionName}`);
