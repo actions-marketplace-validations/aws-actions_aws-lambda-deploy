@@ -213,6 +213,7 @@ Below are two commonly used Build examples for Node.js and Python:
 | `logging-config` | CloudWatch Logs configuration | No | |
 | `code-signing-config-arn` | ARN of code-signing configuration | No | |
 | `tags` | Tags to apply to the function as JSON string | No | |
+| `durable-config` | Configuration settings for durable functions as JSON string | No | |
 
 ## Outputs
 

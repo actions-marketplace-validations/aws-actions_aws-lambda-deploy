@@ -28,10 +28,11 @@ async function run() {
       role, codeSigningConfigArn, kmsKeyArn, sourceKmsKeyArn,
       vpcConfig, deadLetterConfig, tracingConfig,
       layers, fileSystemConfigs, imageConfig, snapStart,
-      loggingConfig, tags,
+      loggingConfig, tags, durableConfig,
       parsedEnvironment, parsedVpcConfig, parsedDeadLetterConfig,
       parsedTracingConfig, parsedLayers, parsedFileSystemConfigs,
       parsedImageConfig, parsedSnapStart, parsedLoggingConfig, parsedTags,
+      parsedDurableConfig,
       functionDescription, dryRun, publish, revisionId,
       runtime, handler, architectures
     } = inputs;
@@ -81,9 +82,10 @@ async function run() {
       revisionId, vpcConfig, parsedEnvironment, deadLetterConfig,
       tracingConfig, layers, fileSystemConfigs, imageConfig,
       snapStart, loggingConfig, tags, kmsKeyArn, codeSigningConfigArn,
+      durableConfig,
       parsedVpcConfig, parsedDeadLetterConfig, parsedTracingConfig,
       parsedLayers, parsedFileSystemConfigs, parsedImageConfig,
-      parsedSnapStart, parsedLoggingConfig, parsedTags
+      parsedSnapStart, parsedLoggingConfig, parsedTags, parsedDurableConfig
     }, functionExists);
 
     // Update function configuration
@@ -108,7 +110,8 @@ async function run() {
       ...(fileSystemConfigs && { FileSystemConfigs: parsedFileSystemConfigs }),
       ...(imageConfig && { ImageConfig: parsedImageConfig }),
       ...(snapStart && { SnapStart: parsedSnapStart }),
-      ...(loggingConfig && { LoggingConfig: parsedLoggingConfig })
+      ...(loggingConfig && { LoggingConfig: parsedLoggingConfig }),
+      ...(durableConfig && { DurableConfig: parsedDurableConfig })
     });
 
     if (configChanged) {
@@ -136,6 +139,7 @@ async function run() {
         imageConfig,
         snapStart,
         loggingConfig,
+        durableConfig,
         parsedVpcConfig,
         parsedDeadLetterConfig,
         parsedTracingConfig,
@@ -143,7 +147,8 @@ async function run() {
         parsedFileSystemConfigs,
         parsedImageConfig,
         parsedSnapStart,
-        parsedLoggingConfig
+        parsedLoggingConfig,
+        parsedDurableConfig
       });
     } else {
       core.info('No configuration changes detected');
@@ -302,9 +307,10 @@ async function createFunction(client, inputs, functionExists) {
     timeout, publish, architectures, ephemeralStorage, revisionId,
     vpcConfig, parsedEnvironment, deadLetterConfig, tracingConfig,
     layers, fileSystemConfigs, imageConfig, snapStart, loggingConfig, tags,
-    kmsKeyArn, codeSigningConfigArn, parsedVpcConfig, parsedDeadLetterConfig,
+    kmsKeyArn, codeSigningConfigArn, durableConfig,
+    parsedVpcConfig, parsedDeadLetterConfig,
     parsedTracingConfig, parsedLayers, parsedFileSystemConfigs, parsedImageConfig,
-    parsedSnapStart, parsedLoggingConfig, parsedTags
+    parsedSnapStart, parsedLoggingConfig, parsedTags, parsedDurableConfig
   } = inputs;
 
   if (!functionExists) {
@@ -390,6 +396,7 @@ async function createFunction(client, inputs, functionExists) {
         ...(tags && { Tags: parsedTags }),
         ...(kmsKeyArn && { KMSKeyArn: kmsKeyArn }),
         ...(codeSigningConfigArn && { CodeSigningConfigArn: codeSigningConfigArn }),
+        ...(durableConfig && { DurableConfig: parsedDurableConfig })
       };
 
       core.info(`Creating new Lambda function: ${functionName}`);
@@ -480,10 +487,10 @@ async function updateFunctionConfiguration(client, params) {
     functionName, role, handler, functionDescription, parsedMemorySize,
     timeout, runtime, kmsKeyArn, ephemeralStorage, vpcConfig,
     parsedEnvironment, deadLetterConfig, tracingConfig, layers,
-    fileSystemConfigs, imageConfig, snapStart, loggingConfig,
+    fileSystemConfigs, imageConfig, snapStart, loggingConfig, durableConfig,
     parsedVpcConfig, parsedDeadLetterConfig, parsedTracingConfig,
     parsedLayers, parsedFileSystemConfigs, parsedImageConfig,
-    parsedSnapStart, parsedLoggingConfig
+    parsedSnapStart, parsedLoggingConfig, parsedDurableConfig
   } = params;
 
   try {
@@ -505,7 +512,8 @@ async function updateFunctionConfiguration(client, params) {
       ...(fileSystemConfigs && { FileSystemConfigs: parsedFileSystemConfigs }),
       ...(imageConfig && { ImageConfig: parsedImageConfig }),
       ...(snapStart && { SnapStart: parsedSnapStart }),
-      ...(loggingConfig && { LoggingConfig: parsedLoggingConfig })
+      ...(loggingConfig && { LoggingConfig: parsedLoggingConfig }),
+      ...(durableConfig && { DurableConfig: parsedDurableConfig })
     };
 
     core.info(`Updating function configuration for ${functionName}`);
@@ -98020,10 +98028,11 @@ function validateJsonInputs() {
   const snapStart = core.getInput('snap-start', { required: false });
   const loggingConfig = core.getInput('logging-config', { required: false });
   const tags = core.getInput('tags', { required: false });
+  const durableConfig = core.getInput('durable-config', { required: false });
 
   let parsedEnvironment, parsedVpcConfig, parsedDeadLetterConfig, parsedTracingConfig,
     parsedLayers, parsedFileSystemConfigs, parsedImageConfig, parsedSnapStart,
-    parsedLoggingConfig, parsedTags;
+    parsedLoggingConfig, parsedTags, parsedDurableConfig;
 
   try {
     if (environment) {
@@ -98094,6 +98103,24 @@ function validateJsonInputs() {
         throw new Error('tags must be an object of key-value pairs');
       }
     }
+
+    if (durableConfig) {
+      parsedDurableConfig = parseJsonInput(durableConfig, 'durable-config');
+      if (parsedDurableConfig.ExecutionTimeout !== undefined) {
+        if (typeof parsedDurableConfig.ExecutionTimeout !== 'number' || 
+            parsedDurableConfig.ExecutionTimeout < 1 || 
+            parsedDurableConfig.ExecutionTimeout > 31622400) {
+          throw new Error('durable-config ExecutionTimeout must be between 1 and 31622400 seconds');
+        }
+      }
+      if (parsedDurableConfig.RetentionPeriodInDays !== undefined) {
+        if (typeof parsedDurableConfig.RetentionPeriodInDays !== 'number' || 
+            parsedDurableConfig.RetentionPeriodInDays < 1 || 
+            parsedDurableConfig.RetentionPeriodInDays > 90) {
+          throw new Error('durable-config RetentionPeriodInDays must be between 1 and 90 days');
+        }
+      }
+    }
   } catch (error) {
     core.setFailed(`Input validation error: ${error.message}`);
     return { valid: false };
@@ -98111,6 +98138,7 @@ function validateJsonInputs() {
     snapStart,
     loggingConfig,
     tags,
+    durableConfig,
     parsedEnvironment,
     parsedVpcConfig,
     parsedDeadLetterConfig,
@@ -98120,7 +98148,8 @@ function validateJsonInputs() {
     parsedImageConfig,
     parsedSnapStart,
     parsedLoggingConfig,
-    parsedTags
+    parsedTags,
+    parsedDurableConfig
   };
 }
 

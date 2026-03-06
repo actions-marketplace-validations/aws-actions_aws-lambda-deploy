@@ -1204,6 +1204,190 @@ describe('Validations Tests', () => {
         expect(core.setFailed).not.toHaveBeenCalled();
       });
     });
+
+    describe('durable-config validation', () => {
+      test('should accept valid durable-config with ExecutionTimeout', () => {
+        const mockGetInput = jest.fn((name) => {
+          if (name === 'durable-config') {
+            return '{"ExecutionTimeout":3600}';
+          }
+          const inputs = {
+            'function-name': 'test-function',
+            'region': 'us-east-1',
+            'code-artifacts-dir': './test-dir'
+          };
+          return inputs[name] || '';
+        });
+        core.getInput = mockGetInput;
+        const result = originalValidations.validateAllInputs();
+        expect(result.valid).toBe(true);
+        expect(result.parsedDurableConfig).toEqual({ ExecutionTimeout: 3600 });
+        expect(core.setFailed).not.toHaveBeenCalled();
+      });
+
+      test('should accept valid durable-config with RetentionPeriodInDays', () => {
+        const mockGetInput = jest.fn((name) => {
+          if (name === 'durable-config') {
+            return '{"RetentionPeriodInDays":7}';
+          }
+          const inputs = {
+            'function-name': 'test-function',
+            'region': 'us-east-1',
+            'code-artifacts-dir': './test-dir'
+          };
+          return inputs[name] || '';
+        });
+        core.getInput = mockGetInput;
+        const result = originalValidations.validateAllInputs();
+        expect(result.valid).toBe(true);
+        expect(result.parsedDurableConfig).toEqual({ RetentionPeriodInDays: 7 });
+        expect(core.setFailed).not.toHaveBeenCalled();
+      });
+
+      test('should accept valid durable-config with both properties', () => {
+        const mockGetInput = jest.fn((name) => {
+          if (name === 'durable-config') {
+            return '{"ExecutionTimeout":3600,"RetentionPeriodInDays":7}';
+          }
+          const inputs = {
+            'function-name': 'test-function',
+            'region': 'us-east-1',
+            'code-artifacts-dir': './test-dir'
+          };
+          return inputs[name] || '';
+        });
+        core.getInput = mockGetInput;
+        const result = originalValidations.validateAllInputs();
+        expect(result.valid).toBe(true);
+        expect(result.parsedDurableConfig).toEqual({ 
+          ExecutionTimeout: 3600,
+          RetentionPeriodInDays: 7 
+        });
+        expect(core.setFailed).not.toHaveBeenCalled();
+      });
+
+      test('should reject ExecutionTimeout below minimum', () => {
+        const mockGetInput = jest.fn((name) => {
+          if (name === 'durable-config') {
+            return '{"ExecutionTimeout":0}';
+          }
+          const inputs = {
+            'function-name': 'test-function',
+            'region': 'us-east-1',
+            'code-artifacts-dir': './test-dir'
+          };
+          return inputs[name] || '';
+        });
+        core.getInput = mockGetInput;
+        const result = originalValidations.validateAllInputs();
+        expect(result.valid).toBe(false);
+        expect(core.setFailed).toHaveBeenCalledWith(
+          expect.stringContaining('ExecutionTimeout must be between 1 and 31622400')
+        );
+      });
+
+      test('should reject ExecutionTimeout above maximum', () => {
+        const mockGetInput = jest.fn((name) => {
+          if (name === 'durable-config') {
+            return '{"ExecutionTimeout":31622401}';
+          }
+          const inputs = {
+            'function-name': 'test-function',
+            'region': 'us-east-1',
+            'code-artifacts-dir': './test-dir'
+          };
+          return inputs[name] || '';
+        });
+        core.getInput = mockGetInput;
+        const result = originalValidations.validateAllInputs();
+        expect(result.valid).toBe(false);
+        expect(core.setFailed).toHaveBeenCalledWith(
+          expect.stringContaining('ExecutionTimeout must be between 1 and 31622400')
+        );
+      });
+
+      test('should reject RetentionPeriodInDays below minimum', () => {
+        const mockGetInput = jest.fn((name) => {
+          if (name === 'durable-config') {
+            return '{"RetentionPeriodInDays":0}';
+          }
+          const inputs = {
+            'function-name': 'test-function',
+            'region': 'us-east-1',
+            'code-artifacts-dir': './test-dir'
+          };
+          return inputs[name] || '';
+        });
+        core.getInput = mockGetInput;
+        const result = originalValidations.validateAllInputs();
+        expect(result.valid).toBe(false);
+        expect(core.setFailed).toHaveBeenCalledWith(
+          expect.stringContaining('RetentionPeriodInDays must be between 1 and 90')
+        );
+      });
+
+      test('should reject RetentionPeriodInDays above maximum', () => {
+        const mockGetInput = jest.fn((name) => {
+          if (name === 'durable-config') {
+            return '{"RetentionPeriodInDays":91}';
+          }
+          const inputs = {
+            'function-name': 'test-function',
+            'region': 'us-east-1',
+            'code-artifacts-dir': './test-dir'
+          };
+          return inputs[name] || '';
+        });
+        core.getInput = mockGetInput;
+        const result = originalValidations.validateAllInputs();
+        expect(result.valid).toBe(false);
+        expect(core.setFailed).toHaveBeenCalledWith(
+          expect.stringContaining('RetentionPeriodInDays must be between 1 and 90')
+        );
+      });
+
+      test('should accept maximum valid values', () => {
+        const mockGetInput = jest.fn((name) => {
+          if (name === 'durable-config') {
+            return '{"ExecutionTimeout":31622400,"RetentionPeriodInDays":90}';
+          }
+          const inputs = {
+            'function-name': 'test-function',
+            'region': 'us-east-1',
+            'code-artifacts-dir': './test-dir'
+          };
+          return inputs[name] || '';
+        });
+        core.getInput = mockGetInput;
+        const result = originalValidations.validateAllInputs();
+        expect(result.valid).toBe(true);
+        expect(result.parsedDurableConfig).toEqual({ 
+          ExecutionTimeout: 31622400,
+          RetentionPeriodInDays: 90 
+        });
+        expect(core.setFailed).not.toHaveBeenCalled();
+      });
+
+      test('should reject invalid JSON in durable-config', () => {
+        const mockGetInput = jest.fn((name) => {
+          if (name === 'durable-config') {
+            return '{invalid json}';
+          }
+          const inputs = {
+            'function-name': 'test-function',
+            'region': 'us-east-1',
+            'code-artifacts-dir': './test-dir'
+          };
+          return inputs[name] || '';
+        });
+        core.getInput = mockGetInput;
+        const result = originalValidations.validateAllInputs();
+        expect(result.valid).toBe(false);
+        expect(core.setFailed).toHaveBeenCalledWith(
+          expect.stringContaining('Invalid JSON in durable-config')
+        );
+      });
+    });
   });
   describe('getAdditionalInputs function', () => {
     test('should handle invalid publish input and default to false', () => {
